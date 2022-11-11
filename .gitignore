@@ -4,6 +4,9 @@ build/**
 # Install folder
 install/**
 
+# Dependencies folder
+deps/**
+
 # Prerequisites
 *.d
 
