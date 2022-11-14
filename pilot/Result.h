@@ -4,20 +4,22 @@
 #include <iostream>
 #include <string>
 
+namespace pilot
+{
 enum class ResultTag
 {
   Valid,
   Error,
 };
 
-template <typename ValidResult, typename ErrorType>
+template <typename ResultType, typename ErrorType>
 struct Result
 {
   ResultTag Tag;
-  ValidResult Outcome;
+  ResultType Outcome;
   ErrorType Error;
 
-  Result(const ValidResult& result)
+  Result(const ResultType& result)
     : Tag(ResultTag::Valid)
     , Outcome(result)
   {
@@ -33,9 +35,4 @@ struct Result
 
   bool IsError() const { return this->Tag == ResultTag::Error; }
 };
-
-void Fail(std::string message)
-{
-  std::cerr << "Failure: " << message << "\n";
-  exit(EXIT_FAILURE);
 }

@@ -1,7 +1,8 @@
 #include "Chunk.h"
-#include "IO.h"
-#include "Result.h"
-#include "String.h"
+#include <pilot/DataSetUtils.h>
+#include <pilot/Result.h>
+#include <pilot/StringUtils.h>
+#include <pilot/System.h>
 #include <pilot/utils/args.hxx>
 
 #include <vtkm/cont/Initialize.h>
@@ -13,6 +14,12 @@
 #include <string>
 #include <vector>
 
+namespace pilot
+{
+namespace apps
+{
+namespace convert
+{
 struct Options
 {
   std::string InputFileName;
@@ -29,7 +36,7 @@ std::ostream& operator<<(std::ostream& ostream, const Options& opts)
 {
   std::cerr << "Options {"
             << "InputFileName = " << opts.InputFileName << ", FieldNames = ["
-            << Join(opts.FieldNames, ", ") << "]"
+            << pilot::StringUtils::Join(opts.FieldNames, ", ") << "]"
             << ", OutputFileNamePrefix = " << opts.OutputFileNamePrefix
             << ", ChunksX = " << opts.ChunksX << ", ChunksY = " << opts.ChunksY
             << ", ChunksZ = " << opts.ChunksZ << "}";
@@ -98,17 +105,22 @@ Options ParseOptions(int& argc, char** argv)
 
   return opts;
 }
+}
+}
+}
+
+namespace convert = pilot::apps::convert;
 
 int main(int argc, char** argv)
 {
-  Options opts = ParseOptions(argc, argv);
+  convert::Options opts = convert::ParseOptions(argc, argv);
   auto vtkmOpts = vtkm::cont::InitializeOptions::DefaultAnyDevice;
   vtkm::cont::Initialize(argc, argv, vtkmOpts);
 
-  auto readResult = ReadDataSet(opts.InputFileName);
+  auto readResult = pilot::DataSetUtils::Read(opts.InputFileName);
   if (readResult.IsError())
   {
-    Fail(readResult.Error);
+    pilot::system::Fail(readResult.Error);
   }
 
   auto dataSet = readResult.Outcome;
@@ -118,12 +130,18 @@ int main(int argc, char** argv)
     fieldSelection.AddField(fieldName);
   }
   auto chunkResult =
-    ChunkDataSet(dataSet, opts.ChunksX, opts.ChunksY, opts.ChunksZ, fieldSelection);
+    convert::ChunkDataSet(dataSet, opts.ChunksX, opts.ChunksY, opts.ChunksZ, fieldSelection);
   if (chunkResult.IsError())
   {
-    Fail(chunkResult.Error);
+    pilot::system::Fail(chunkResult.Error);
   }
-  auto saveResult =
-    SaveChunksToDisk(chunkResult.Outcome, opts.OutputFileNamePrefix, vtkm::io::FileType::BINARY);
-  return 0;
+  auto saveResult = convert::SaveChunksToDisk(
+    chunkResult.Outcome, opts.OutputFileNamePrefix, vtkm::io::FileType::BINARY);
+
+  if (saveResult.IsError())
+  {
+    pilot::system::Fail(saveResult.Error);
+  }
+
+  return EXIT_SUCCESS;
 }

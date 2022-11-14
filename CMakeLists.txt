@@ -24,6 +24,7 @@ target_include_directories(Pilot
 
 set (CONVERT_SRCS
   convert/main.cxx
+  convert/Chunk.cxx
 )
 
 add_executable(Convert ${CONVERT_SRCS})
