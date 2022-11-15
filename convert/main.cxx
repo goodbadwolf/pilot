@@ -25,6 +25,7 @@ struct Options
   std::string InputFileName;
   std::vector<std::string> FieldNames;
   std::string OutputFileNamePrefix;
+  ChunkCellSetType OutputCellSetType;
   int ChunksX;
   int ChunksY;
   int ChunksZ;
@@ -38,8 +39,8 @@ std::ostream& operator<<(std::ostream& ostream, const Options& opts)
             << "InputFileName = " << opts.InputFileName << ", FieldNames = ["
             << pilot::StringUtils::Join(opts.FieldNames, ", ") << "]"
             << ", OutputFileNamePrefix = " << opts.OutputFileNamePrefix
-            << ", ChunksX = " << opts.ChunksX << ", ChunksY = " << opts.ChunksY
-            << ", ChunksZ = " << opts.ChunksZ << "}";
+            << ", OutputCellSetType = " << opts.OutputCellSetType << ", ChunksX = " << opts.ChunksX
+            << ", ChunksY = " << opts.ChunksY << ", ChunksZ = " << opts.ChunksZ << "}";
   return ostream;
 }
 
@@ -69,6 +70,15 @@ Options ParseOptions(int& argc, char** argv)
                                                        "The output file name prefix",
                                                        { 'o', "output" },
                                                        args::Options::Required);
+  std::unordered_map<std::string, ChunkCellSetType> cellSetMap{
+    { "rectilinear", ChunkCellSetType::Rectilinear }, { "uniform", ChunkCellSetType::Uniform }
+  };
+  args::MapFlag<std::string, ChunkCellSetType> outputCellSetTypeArg(argsGrp,
+                                                                    "CellSet type",
+                                                                    "The output cellset type",
+                                                                    { "outputCellSetType" },
+                                                                    cellSetMap,
+                                                                    args::Options::Required);
   args::HelpFlag helpArg(argsGrp, "help", "Display this help menu", { 'h', "help" });
   try
   {
@@ -97,10 +107,11 @@ Options ParseOptions(int& argc, char** argv)
   {
     opts.InputFileName = args::get(inputFileNameArg);
     opts.FieldNames = args::get(fieldsArgs);
-    opts.OutputFileNamePrefix = args::get(outputFileNamePrefixArg);
     opts.ChunksX = args::get(chunkXArg);
     opts.ChunksY = args::get(chunkYArg);
     opts.ChunksZ = args::get(chunkZArg);
+    opts.OutputFileNamePrefix = args::get(outputFileNamePrefixArg);
+    opts.OutputCellSetType = args::get(outputCellSetTypeArg);
   }
 
   return opts;
@@ -114,6 +125,7 @@ namespace convert = pilot::apps::convert;
 int main(int argc, char** argv)
 {
   convert::Options opts = convert::ParseOptions(argc, argv);
+  std::cerr << "Running Convert with options: " << opts << "\n";
   auto vtkmOpts = vtkm::cont::InitializeOptions::DefaultAnyDevice;
   vtkm::cont::Initialize(argc, argv, vtkmOpts);
 
@@ -124,13 +136,21 @@ int main(int argc, char** argv)
   }
 
   auto dataSet = readResult.Outcome;
+  for (const auto& fieldName : opts.FieldNames)
+  {
+    if (!dataSet.HasField(fieldName))
+    {
+      pilot::system::Fail("DataSet does not have field " + fieldName);
+    }
+  }
+
   auto fieldSelection = vtkm::filter::FieldSelection();
   for (const auto& fieldName : opts.FieldNames)
   {
     fieldSelection.AddField(fieldName);
   }
-  auto chunkResult =
-    convert::ChunkDataSet(dataSet, opts.ChunksX, opts.ChunksY, opts.ChunksZ, fieldSelection);
+  auto chunkResult = convert::ChunkDataSet(
+    dataSet, opts.ChunksX, opts.ChunksY, opts.ChunksZ, fieldSelection, opts.OutputCellSetType);
   if (chunkResult.IsError())
   {
     pilot::system::Fail(chunkResult.Error);

@@ -19,16 +19,22 @@ using DataSets = std::vector<vtkm::cont::DataSet>;
 using ChunkResult = pilot::Result<DataSets, std::string>;
 using FilterResult = pilot::Result<vtkm::cont::DataSet, std::string>;
 using SaveResult = pilot::Result<bool, std::string>;
-using UniformPoints = vtkm::cont::ArrayHandleUniformPointCoordinates;
-using FloatHandle = vtkm::cont::ArrayHandle<vtkm::FloatDefault>;
-using RectilinearPoints =
-  vtkm::cont::ArrayHandleCartesianProduct<FloatHandle, FloatHandle, FloatHandle>;
+
+enum class ChunkCellSetType
+{
+  Rectilinear,
+  Uniform
+
+};
+
+std::ostream& operator<<(std::ostream& os, const ChunkCellSetType& cellSetType);
 
 ChunkResult ChunkDataSet(const vtkm::cont::DataSet& dataSet,
                          int chunksX,
                          int chunksY,
                          int chunksZ,
-                         vtkm::filter::FieldSelection fields);
+                         vtkm::filter::FieldSelection fields,
+                         ChunkCellSetType chunkCellSetType = ChunkCellSetType::Rectilinear);
 
 SaveResult SaveChunksToDisk(const DataSets& dataSets,
                             const std::string& fileNamePrefix,
