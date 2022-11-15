@@ -1,0 +1,6 @@
+- Query opacity values directly from ranks instead of rank 0
+  - OpacityQueryManager
+- Fix bug with light inside of volume
+- Refactor to use multiple lights
+- Refactor to use multiple domains per rank
+- Refactor scene creation to multiple files

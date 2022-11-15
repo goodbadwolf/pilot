@@ -43,3 +43,6 @@ deps/**
 # VSCode
 .vscode
 *.code-workspace
+
+# Just
+justfile

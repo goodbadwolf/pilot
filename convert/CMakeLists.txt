@@ -1,3 +1,4 @@
+project (Convert LANGUAGES CXX)
 find_package(VTKm REQUIRED QUIET)
 
 set (CONVERT_SRCS
