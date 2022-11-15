@@ -2,34 +2,13 @@ cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
 project(Pilot)
 
-#Find the VTK-m package
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 find_package(VTKm REQUIRED QUIET)
 
-set (PILOT_SRCS
-  pilot/test.cxx
-)
+option(PILOT_ENABLE_CONVERT "Enable the Convert app" ON)
 
-set (PILOT_HEADERS
-  pilot/utils/args.hxx
-)
-
-add_library(Pilot ${PILOT_SRCS} ${PILOT_HEADERS})
-target_link_libraries(Pilot 
-  PRIVATE vtkm_filter 
-  PRIVATE vtkm_io
-)
-# Is this the right way to export the headers?
-target_include_directories(Pilot 
-  PUBLIC pilot/..)
-
-set (CONVERT_SRCS
-  convert/main.cxx
-  convert/Chunk.cxx
-)
-
-add_executable(Convert ${CONVERT_SRCS})
-target_link_libraries(Convert 
-  PUBLIC Pilot 
-  PRIVATE vtkm_filter 
-  PRIVATE vtkm_io
-)
+add_subdirectory(pilot)
+add_subdirectory(convert)
