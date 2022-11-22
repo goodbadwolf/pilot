@@ -81,6 +81,18 @@ struct LightOptions
   std::vector<LightOption> Lights;
 };
 
+struct ColorTableOptions
+{
+  beams::Result Deserialize(const PJObj& optionsObj);
+
+  friend std::ostream& operator<<(std::ostream& os, const ColorTableOptions& options);
+
+  std::string Name;
+  vtkm::Float32 RangeMin;
+  vtkm::Float32 RangeMax;
+  std::vector<std::pair<vtkm::Float64, vtkm::Float32>> PointAlphas;
+};
+
 struct Preset
 {
   beams::Result Deserialize(const PJObj& presetObj);
@@ -92,6 +104,7 @@ struct Preset
   beams::OpacityMapOptions OpacityMapOptions;
   beams::CameraOptions CameraOptions;
   beams::LightOptions LightOptions;
+  beams::ColorTableOptions ColorTableOptions;
 }; // struct Preset
 
 struct Config

@@ -1,5 +1,4 @@
 #include "Spheres.h"
-#include "../utils/Fmt.h"
 
 #include <vtkm/VectorAnalysis.h>
 #include <vtkm/filter/FilterField.h>

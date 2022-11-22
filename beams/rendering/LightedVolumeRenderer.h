@@ -91,6 +91,8 @@ protected:
   vtkm::cont::CellSetStructured<3> CellSet;
   const vtkm::cont::Field* ScalarField;
   vtkm::cont::ArrayHandle<vtkm::Vec4f_32> ColorMap;
+
+public:
   vtkm::Float32 SampleDistance;
   vtkm::Range ScalarRange;
   vtkm::rendering::raytracing::Lights TheLights;

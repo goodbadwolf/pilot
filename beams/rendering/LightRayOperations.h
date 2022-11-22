@@ -1,7 +1,6 @@
 #ifndef beams_rendering_lightrayoperations_h
 #define beams_rendering_lightrayoperations_h
 
-#include "../utils/Fmt.h"
 #include "LightRays.h"
 
 #include <vtkm/VectorAnalysis.h>

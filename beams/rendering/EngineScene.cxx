@@ -1,8 +1,8 @@
 #include "EngineScene.h"
 #include "../sources/Spheres.h"
 #include "PointLight.h"
-#include "mpi/MpiEnv.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
+#include <pilot/mpi/Environment.h>
 
 #include <vtkm/Types.h>
 #include <vtkm/io/FileUtils.h>
@@ -13,7 +13,7 @@ namespace beams
 {
 namespace rendering
 {
-void EngineScene::ShapeMpiTopology(std::shared_ptr<beams::mpi::MpiEnv> mpiEnv)
+void EngineScene::ShapeMpiTopology(std::shared_ptr<pilot::mpi::Environment> mpiEnv)
 {
   mpiEnv->ReshapeAsLine();
 }
@@ -31,6 +31,7 @@ std::shared_ptr<beams::rendering::Scene> EngineScene::CreateFromPreset(const bea
   return scene;
 }
 
+/*
 beams::Result EngineScene::Ready()
 {
   auto result = FileSceneBase::Ready();
@@ -42,6 +43,7 @@ beams::Result EngineScene::Ready()
   this->Mapper.AddLight(light);
   return result;
 }
+*/
 
 }
 } //namespace beams::rendering

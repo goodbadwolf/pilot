@@ -1,5 +1,5 @@
-#ifndef beams_rendering_bonsaiscene_h
-#define beams_rendering_bonsaiscene_h
+#ifndef beams_rendering_footscene_h
+#define beams_rendering_footscene_h
 
 #include "../Config.h"
 #include "FileSceneBase.h"
@@ -10,18 +10,18 @@ namespace beams
 {
 namespace rendering
 {
-struct BonsaiScene : public FileSceneBase
+struct FootScene : public FileSceneBase
 {
-  BonsaiScene() {}
-  virtual ~BonsaiScene() {}
+  FootScene() {}
+  virtual ~FootScene() {}
 
   std::string GetFieldName(const beams::Preset& preset) override;
 
   void ShapeMpiTopology(std::shared_ptr<pilot::mpi::Environment> mpiEnv) override;
 
   static std::shared_ptr<beams::rendering::Scene> CreateFromPreset(const beams::Preset& preset);
-}; // struct BonsaiScene
+}; // struct FootScene
 }
 } // namespace beams::rendering
 
-#endif // beams_rendering_bonsaiscene_h
+#endif // beams_rendering_footscene_h

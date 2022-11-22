@@ -1,8 +1,8 @@
 #include "BonsaiScene.h"
 #include "../sources/Spheres.h"
 #include "PointLight.h"
-#include "mpi/MpiEnv.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
+#include <pilot/mpi/Environment.h>
 
 #include <vtkm/Types.h>
 #include <vtkm/io/FileUtils.h>
@@ -13,7 +13,7 @@ namespace beams
 {
 namespace rendering
 {
-void BonsaiScene::ShapeMpiTopology(std::shared_ptr<beams::mpi::MpiEnv> mpiEnv)
+void BonsaiScene::ShapeMpiTopology(std::shared_ptr<pilot::mpi::Environment> mpiEnv)
 {
   mpiEnv->ReshapeAsLine();
 }
@@ -30,6 +30,11 @@ std::shared_ptr<beams::rendering::Scene> BonsaiScene::CreateFromPreset(const bea
   scene->Init(preset);
   return scene;
 }
-
 }
+/*
+0   -  30 => 0.0000 - 0.1176,
+35  -  45 => 0.1367 - 0.1758,
+120 - 160 => 0.4688 - 0.6250,
+200 - 220 => 0.7813 - 0.8594
+*/
 } //namespace beams::rendering

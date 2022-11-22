@@ -207,6 +207,36 @@ beams::Result LightOption::Deserialize(const PJObj& optionsObj)
   return Result::Succeeded();
 }
 
+beams::Result ColorTableOptions::Deserialize(const PJObj& optionsObj)
+{
+  const auto DeserializeToFloat32 = DeserializeToNativeType<vtkm::Float32, double>;
+  const auto DeserializeToFloat64 = DeserializeToNativeType<vtkm::Float64, double>;
+  const auto DeserializeToVecFloat32 = DeserializeToVectorNative<vtkm::Float32, double>;
+  const auto DeserializeToVecFloat64 = DeserializeToVectorNative<vtkm::Float64, double>;
+  CHECK_RESULT(DeserializeToNativeType(optionsObj, "name", this->Name), "Error reading preset");
+  std::vector<vtkm::Float64> tmpPointXs;
+  std::vector<vtkm::Float32> tmpPointAlphas;
+  CHECK_RESULT(DeserializeToVecFloat64(optionsObj, "pointXs", tmpPointXs), "Error reading pointXs");
+  CHECK_RESULT(DeserializeToVecFloat32(optionsObj, "pointAlphas", tmpPointAlphas),
+               "Error reading pointAlphas");
+  if (tmpPointXs.size() != tmpPointAlphas.size())
+  {
+    return Result::Failed(fmt::format(
+      "pointXs.size() != pointAlphas.size(): {} != {}", tmpPointXs.size(), tmpPointAlphas.size()));
+  }
+  CHECK_RESULT(DeserializeToFloat32(optionsObj, "rangeMin", this->RangeMin),
+               "Error reading colorTableOptions");
+  CHECK_RESULT(DeserializeToFloat32(optionsObj, "rangeMax", this->RangeMax),
+               "Error reading colorTableOptions");
+  vtkm::Float64 range = (this->RangeMax - this->RangeMin);
+  for (auto i = 0; i < tmpPointXs.size(); ++i)
+  {
+    vtkm::Float64 x = tmpPointXs[i] / range;
+    this->PointAlphas.push_back({ x, tmpPointAlphas[i] });
+  }
+  return Result::Succeeded();
+}
+
 beams::Result Preset::Deserialize(const PJObj& presetObj)
 {
   CHECK_RESULT(DeserializeToNativeType(presetObj, "id", this->Id), "Error reading preset");
@@ -218,7 +248,11 @@ beams::Result Preset::Deserialize(const PJObj& presetObj)
                fmt::format("Error reading preset '{}'", this->Id));
   CHECK_RESULT(DeserializeToType(presetObj, "lightOptions", this->LightOptions),
                fmt::format("Error reading preset '{}'", this->Id));
-
+  if (presetObj.find("colorTableOptions") != presetObj.end())
+  {
+    CHECK_RESULT(DeserializeToType(presetObj, "colorTableOptions", this->ColorTableOptions),
+                 fmt::format("Error reading preset '{}'", this->Id));
+  }
   return Result::Succeeded();
 }
 

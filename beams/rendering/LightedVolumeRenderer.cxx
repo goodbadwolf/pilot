@@ -2,8 +2,7 @@
 #include "../Math.h"
 #include "PointLight.h"
 #include "TransmittanceMap.h"
-#include "mpi/Types.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
 
 #include "RectilinearMeshOracle.h"
 #include <vtkm/cont/ArrayHandleCartesianProduct.h>
@@ -149,7 +148,6 @@ public:
 
         cell[dim] += searchDir;
         vtkm::Id nextCellId = searchDir == 1 ? cell[dim] + 1 : cell[dim];
-        BOUNDS_CHECK(CoordPortals[dim], nextCellId);
         vtkm::Float32 next = static_cast<vtkm::Float32>(CoordPortals[dim].Get(nextCellId));
         if (searchDir == 1)
         {
@@ -175,7 +173,6 @@ public:
   VTKM_EXEC
   inline void GetPoint(const vtkm::Id& index, vtkm::Vec3f_32& point) const
   {
-    BOUNDS_CHECK(Coordinates, index);
     point = Coordinates.Get(index);
   }
 
@@ -281,7 +278,6 @@ public:
   VTKM_EXEC
   inline void GetPoint(const vtkm::Id& index, vtkm::Vec3f_32& point) const
   {
-    BOUNDS_CHECK(Coordinates, index);
     point = Coordinates.Get(index);
   }
 
@@ -356,13 +352,9 @@ public:
                             const vtkm::Id& pixelIndex) const
   {
     vtkm::Vec4f_32 color;
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 0);
     color[0] = colorBuffer.Get(pixelIndex * 4 + 0);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 1);
     color[1] = colorBuffer.Get(pixelIndex * 4 + 1);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 2);
     color[2] = colorBuffer.Get(pixelIndex * 4 + 2);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 3);
     color[3] = colorBuffer.Get(pixelIndex * 4 + 3);
 
     if (minDistance == -1.f)
@@ -499,13 +491,9 @@ public:
       if (color[3] >= 1.f)
         break;
     }
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 0);
     colorBuffer.Set(pixelIndex * 4 + 0, color[0]);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 1);
     colorBuffer.Set(pixelIndex * 4 + 1, color[1]);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 2);
     colorBuffer.Set(pixelIndex * 4 + 2, color[2]);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 3);
     colorBuffer.Set(pixelIndex * 4 + 3, color[3]);
   }
 }; //Sampler
@@ -559,13 +547,9 @@ public:
                             const vtkm::Id& pixelIndex) const
   {
     vtkm::Vec4f_32 color;
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 0);
     color[0] = colorBuffer.Get(pixelIndex * 4 + 0);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 1);
     color[1] = colorBuffer.Get(pixelIndex * 4 + 1);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 2);
     color[2] = colorBuffer.Get(pixelIndex * 4 + 2);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 3);
     color[3] = colorBuffer.Get(pixelIndex * 4 + 3);
 
     if (minDistance == -1.f)
@@ -650,13 +634,9 @@ public:
     color[2] = vtkm::Min(color[2], 1.f);
     color[3] = vtkm::Min(color[3], 1.f);
 
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 0);
     colorBuffer.Set(pixelIndex * 4 + 0, color[0]);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 1);
     colorBuffer.Set(pixelIndex * 4 + 1, color[1]);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 2);
     colorBuffer.Set(pixelIndex * 4 + 2, color[2]);
-    BOUNDS_CHECK(colorBuffer, pixelIndex * 4 + 3);
     colorBuffer.Set(pixelIndex * 4 + 3, color[3]);
   }
 }; //SamplerCell
@@ -838,6 +818,8 @@ void LightedVolumeRenderer::Render(vtkm::rendering::raytracing::Ray<vtkm::Float3
     this->SampleDistance = this->SpatialExtentMagnitude / defaultNumberOfSamples;
   }
 
+  std::cerr << "SampleDistance = " << this->SampleDistance << "\n";
+
   RenderFunctor<vtkm::Float32> functor(this, rays);
   vtkm::cont::TryExecute(functor);
 }
@@ -930,9 +912,9 @@ void LightedVolumeRenderer::RenderOnDevice(vtkm::rendering::raytracing::Ray<Prec
                                            Device)
 {
   this->Profiler->StartFrame("Phase 1");
-  Fmt::Println0("Phase 1");
+  LOG::Println0("Phase 1");
   vtkm::cont::Timer phase1ShadowMapTimer{ Device() };
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   auto comm = mpi->Comm;
   MPI_Comm mpiComm = vtkmdiy::mpi::mpi_cast(comm->handle());
 
@@ -983,7 +965,7 @@ void LightedVolumeRenderer::RenderOnDevice(vtkm::rendering::raytracing::Ray<Prec
   Phase1Time = phase1ShadowMapTimer.GetElapsedTime();
   this->Profiler->EndFrame();
 
-  Fmt::Println0("Phase 2");
+  LOG::Println0("Phase 2");
   vtkm::cont::Timer phase2MpiTimer;
   phase2MpiTimer.Start();
   MpiTypes MPI_TYPES = ConstructMpiTypes();
@@ -1225,7 +1207,7 @@ void LightedVolumeRenderer::RenderOnDevice(vtkm::rendering::raytracing::Ray<Prec
   vtkm::cont::ArrayHandle<TransmittanceRayBlockHit> rayHits2 =
     vtkm::cont::make_ArrayHandle(rayHits2V, vtkm::CopyFlag::On);
 
-  Fmt::Println0("Phase 3");
+  LOG::Println0("Phase 3");
   vtkm::cont::Timer phase3ShadowMapUpdateTimer;
   phase3ShadowMapUpdateTimer.Start();
 
@@ -1273,7 +1255,7 @@ void LightedVolumeRenderer::RenderOnDevice(vtkm::rendering::raytracing::Ray<Prec
   // FMT_TMR(phase3ShadowMapUpdateTimer);
   Phase3Time = phase3ShadowMapUpdateTimer.GetElapsedTime();
 
-  Fmt::Println0("Phase 4");
+  LOG::Println0("Phase 4");
   vtkm::cont::Timer phase4RenderTimer{ Device() };
   phase4RenderTimer.Start();
   vtkm::Float32 meshEpsilon = this->SpatialExtentMagnitude * 0.0001f;
@@ -1286,7 +1268,7 @@ void LightedVolumeRenderer::RenderOnDevice(vtkm::rendering::raytracing::Ray<Prec
     rays.Dir, rays.MinDistance, rays.Distance, rays.MaxDistance, rays.Origin);
 
   const bool isAssocPoints = ScalarField->IsPointField();
-  Fmt::Println0("IsUniform = {}, isAssocPoints = {}", IsUniformDataSet, isAssocPoints);
+  LOG::Println0("IsUniform = {}, isAssocPoints = {}", IsUniformDataSet, isAssocPoints);
   if (IsUniformDataSet)
   {
     vtkm::cont::ArrayHandleUniformPointCoordinates vertices;
@@ -1386,7 +1368,7 @@ void LightedVolumeRenderer::RenderOnDevice(vtkm::rendering::raytracing::Ray<Prec
   phase4RenderTimer.Stop();
   // FMT_TMR(phase4RenderTimer);
   Phase4Time = phase4RenderTimer.GetElapsedTime();
-  Fmt::Println0("Phase 4 End");
+  LOG::Println0("Phase 4 End");
 }
 
 void LightedVolumeRenderer::SetSampleDistance(const vtkm::Float32& distance)

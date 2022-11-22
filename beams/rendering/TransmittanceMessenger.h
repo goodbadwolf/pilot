@@ -12,7 +12,7 @@ namespace beams
 {
 namespace rendering
 {
-class TransmittanceMessenger : public beams::mpi::Messenger
+class TransmittanceMessenger : public pilot::mpi::Messenger
 {
   //sendRank, message
   using MsgCommType = std::pair<int, std::vector<int>>;

@@ -2,8 +2,8 @@
 #define beams_rendering_filescenebase_h
 
 #include "../Config.h"
-#include "../mpi/MpiEnv.h"
 #include "Scene.h"
+#include <pilot/mpi/Environment.h>
 
 #include <memory>
 
@@ -24,7 +24,7 @@ struct FileSceneBase : public Scene
 
   virtual std::string GetFieldName(const beams::Preset& preset);
 
-  virtual void ShapeMpiTopology(std::shared_ptr<beams::mpi::MpiEnv>) {}
+  virtual void ShapeMpiTopology(std::shared_ptr<pilot::mpi::Environment>) {}
 }; // struct FileSceneBase
 }
 } // namespace beams::rendering

@@ -1,6 +1,6 @@
 #include "Profiler.h"
-#include "mpi/MpiEnv.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
+#include <pilot/mpi/Environment.h>
 
 #include <vtkm/thirdparty/diy/diy.h>
 #include <vtkm/thirdparty/diy/mpi-cast.h>
@@ -23,7 +23,7 @@ ProfilerFrame::ProfilerFrame(const std::string& name)
 
 void ProfilerFrame::Collect()
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   auto comm = mpi->Comm;
   MPI_Comm mpiComm = vtkmdiy::mpi::mpi_cast(comm->handle());
   this->ElapsedTimes.resize(mpi->Size);

@@ -1,17 +1,24 @@
-find_package(VTKm REQUIRED QUIET)
+# find_package(VTKm REQUIRED QUIET)
 
 set (PILOT_SRCS
-  test.cxx
+  io/DataSetUtils.cxx
+  io/PathUtils.cxx
+
+  mpi/Environment.cxx
 )
 
 set (PILOT_HEADERS
-  DataSetUtils.h
+  io/DataSetUtils.h
+  io/PathUtils.h
+
+  mpi/Environment.h
+  mpi/TopologyShape.h
+
+  system/SystemUtils.h
+
   Debug.h
   Result.h
   StringUtils.h
-  System.h
-
-  utils/args.hxx
 )
 
 add_library(Pilot ${PILOT_SRCS} ${PILOT_HEADERS})

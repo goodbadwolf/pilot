@@ -1,8 +1,8 @@
 #include "MapperLightedVolume.h"
 #include "../Profiler.h"
 #include "LightedVolumeRenderer.h"
-#include "mpi/MpiEnv.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
+#include <pilot/mpi/Environment.h>
 
 #include <vtkm/cont/Timer.h>
 #include <vtkm/cont/TryExecute.h>
@@ -105,7 +105,7 @@ void MapperLightedVolume::SetShadowMapSize(vtkm::Id3 size)
 
 void WriteCanvas(vtkm::rendering::CanvasRayTracer* canvas)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   std::stringstream ss;
   ss << "partial_" << mpi->Rank << ".png";
   canvas->SaveAs(ss.str());
@@ -174,7 +174,7 @@ void MapperLightedVolume::RenderCells(const vtkm::cont::UnknownCellSet& cellset,
     {
       tmpCanvas.BlendBackground();
     }
-    auto mpi = beams::mpi::MpiEnv::Get();
+    auto mpi = pilot::mpi::Environment::Get();
     std::string name = "sphere_p_" + std::to_string(mpi->Rank) + ".png";
     Fmt::Println("Saving: {}", name);
     tmpCanvas.SaveAs(name);
@@ -214,7 +214,7 @@ bool IsTransparentColor(const vtkm::Vec4f_32 color)
 
 void MapperLightedVolume::GlobalComposite(const vtkm::rendering::Camera& camera)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   auto comm = mpi->Comm;
   MPI_Comm mpiComm = vtkmdiy::mpi::mpi_cast(comm->handle());
 

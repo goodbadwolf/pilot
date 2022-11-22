@@ -269,21 +269,14 @@ public:
   {
     (void)depth; // TODO: remove
     vtkm::Vec<vtkm::Float32, 4> color;
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 0);
     color[0] = static_cast<vtkm::Float32>(frameBuffer.Get(pixelIndex * 4 + 0));
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 1);
     color[1] = static_cast<vtkm::Float32>(frameBuffer.Get(pixelIndex * 4 + 1));
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 2);
     color[2] = static_cast<vtkm::Float32>(frameBuffer.Get(pixelIndex * 4 + 2));
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 3);
     color[3] = static_cast<vtkm::Float32>(frameBuffer.Get(pixelIndex * 4 + 3));
 
     vtkm::Vec<vtkm::Float32, 3> throughput;
-    BOUNDS_CHECK(throughputBuffer, pixelIndex * 3 + 0);
     throughput[0] = static_cast<vtkm::Float32>(throughputBuffer.Get(pixelIndex * 3 + 0));
-    BOUNDS_CHECK(throughputBuffer, pixelIndex * 3 + 1);
     throughput[1] = static_cast<vtkm::Float32>(throughputBuffer.Get(pixelIndex * 3 + 1));
-    BOUNDS_CHECK(throughputBuffer, pixelIndex * 3 + 2);
     throughput[2] = static_cast<vtkm::Float32>(throughputBuffer.Get(pixelIndex * 3 + 2));
 
     /*
@@ -308,13 +301,9 @@ public:
     color[2] = throughput[2];
     color[3] = 1.0f;
 
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 0);
     frameBuffer.Set(pixelIndex * 4 + 0, color[0]);
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 1);
     frameBuffer.Set(pixelIndex * 4 + 1, color[1]);
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 2);
     frameBuffer.Set(pixelIndex * 4 + 2, color[2]);
-    BOUNDS_CHECK(frameBuffer, pixelIndex * 4 + 3);
     frameBuffer.Set(pixelIndex * 4 + 3, color[3]);
   }
 }; //class ConstantColor

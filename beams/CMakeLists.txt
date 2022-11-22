@@ -1,12 +1,14 @@
 project(Beams CXX)
 
-find_package(VTKm REQUIRED QUIET)
-# vtkm_find_gl(OPTIONAL GL GLEW)
-# find_package(glfw3 3.3 REQUIRED)
-
 if (NOT PILOT_ENABLE_BEAMS)
   return()
 endif()
+
+find_package(VTKm REQUIRED QUIET)
+find_package(MPI REQUIRED QUIET)
+find_package(fmt REQUIRED QUIET)
+# vtkm_find_gl(OPTIONAL GL GLEW)
+# find_package(glfw3 3.3 REQUIRED)
 
 if(TARGET vtkm_rendering AND
   # TARGET OpenGL::GL AND
@@ -23,8 +25,6 @@ if(TARGET vtkm_rendering AND
   Timer.cxx
   # Window.cxx
 
-  mpi/MpiEnv.cxx
-
   rendering/BoundsMap.cxx
   rendering/Light.cxx
   rendering/LightCollection.cxx
@@ -37,9 +37,10 @@ if(TARGET vtkm_rendering AND
   rendering/FileSceneBase.cxx
   rendering/EngineScene.cxx
   rendering/BonsaiScene.cxx
+  rendering/FootScene.cxx
+  rendering/HeadScene.cxx
 
   sources/Spheres.cxx
-  utils/File.cxx
   )
 
   set (BEAMS_INCLUDE .)
@@ -47,16 +48,19 @@ if(TARGET vtkm_rendering AND
   set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
   add_executable(Beams ${BEAMS_SOURCES})
-  add_dependencies(Beams fmt)
+  # add_dependencies(Beams fmt)
   # add_dependencies(Beams imgui)
   target_include_directories(Beams PUBLIC ${BEAMS_INCLUDE})
-  target_include_directories(Beams PUBLIC ${FMT_INCLUDE})
+  # target_include_directories(Beams PUBLIC ${FMT_INCLUDE})
   # target_include_directories(Beams PUBLIC ${IMGUI_INCLUDE})
   target_link_libraries(Beams PRIVATE vtkm_rendering vtkm_source)
   # target_link_libraries(Beams PRIVATE glfw GLEW::GLEW OpenGL::GL)
   # target_link_libraries(Beams PRIVATE ${IMGUI_LIB})
-  target_link_libraries(Beams PRIVATE ${FMT_LIB})
+  target_link_libraries(Beams PRIVATE fmt::fmt)
   target_link_libraries(Beams PRIVATE MPI::MPI_CXX)
+  target_link_libraries(Beams 
+  PUBLIC Pilot 
+  )
   vtkm_add_target_information(Beams
                               DROP_UNUSED_SYMBOLS
                               MODIFY_CUDA_FLAGS

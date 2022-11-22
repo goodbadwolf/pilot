@@ -1,34 +1,34 @@
-//============================================================================
-//  Copyright (c) Kitware, Inc.
-//  All rights reserved.
-//  See LICENSE.txt for details.
-//
-//  This software is distributed WITHOUT ANY WARRANTY; without even
-//  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-//  PURPOSE.  See the above copyright notice for more information.
-//============================================================================
-
 #include "Beams.h"
 #include "Result.h"
-#include "utils/Fmt.h"
 
-std::shared_ptr<beams::mpi::MpiEnv> InitializeMpi(int& argc, char** argv)
+#include <pilot/Logger.h>
+#include <pilot/Result.h>
+#include <pilot/mpi/Environment.h>
+
+pilot::Result<std::shared_ptr<pilot::mpi::Environment>, std::string> InitializeMpi(int& argc,
+                                                                                   char** argv)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
-  beams::Result result = mpi->Initialize(argc, argv);
-  if (result.Success)
+  auto mpi = pilot::mpi::Environment::Get();
+  auto result = mpi->Initialize(argc, argv);
+  if (result.IsValid() && result.Outcome)
   {
     return mpi;
   }
   else
   {
-    return nullptr;
+    return pilot::Result<std::shared_ptr<pilot::mpi::Environment>, std::string>(
+      std::shared_ptr<pilot::mpi::Environment>());
   }
 }
 
 int main(int argc, char* argv[])
 {
-  std::shared_ptr<beams::mpi::MpiEnv> mpiEnv = InitializeMpi(argc, argv);
+  auto mpiInitResult = InitializeMpi(argc, argv);
+  if (mpiInitResult.IsError())
+  {
+    return EXIT_FAILURE;
+  }
+  auto mpiEnv = mpiInitResult.Outcome;
   std::cerr << "Running on host '" << mpiEnv->Hostname << "'\n";
   beams::Beams app(mpiEnv);
 

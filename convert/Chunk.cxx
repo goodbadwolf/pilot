@@ -1,7 +1,7 @@
 #include "Chunk.h"
 
-#include <pilot/DataSetUtils.h>
 #include <pilot/Debug.h>
+#include <pilot/io/DataSetUtils.h>
 
 #include <vtkm/cont/Algorithm.h>
 #include <vtkm/cont/DataSetBuilderRectilinear.h>
@@ -165,7 +165,7 @@ SaveResult SaveChunksToDisk(const DataSets& dataSets,
     ss << fileNamePrefix << "." << (index++) << ".vtk";
     std::string fileName = ss.str();
     std::cerr << "Saving dataset at " << fileName << "\n";
-    auto result = pilot::DataSetUtils::Write(dataSet, fileName, fileType);
+    auto result = pilot::io::DataSetUtils::Write(dataSet, fileName, fileType);
     if (result.IsError())
     {
       return SaveResult(result.Error);

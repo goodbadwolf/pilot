@@ -15,11 +15,11 @@ struct EngineScene : public FileSceneBase
   EngineScene() {}
   virtual ~EngineScene() {}
 
-  beams::Result Ready() override;
+  // beams::Result Ready() override;
 
   std::string GetFieldName(const beams::Preset& preset) override;
 
-  void ShapeMpiTopology(std::shared_ptr<beams::mpi::MpiEnv> mpiEnv) override;
+  void ShapeMpiTopology(std::shared_ptr<pilot::mpi::Environment> mpiEnv) override;
 
   static std::shared_ptr<beams::rendering::Scene> CreateFromPreset(const beams::Preset& preset);
 }; // struct EngineScene

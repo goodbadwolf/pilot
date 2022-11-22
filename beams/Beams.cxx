@@ -3,12 +3,14 @@
 #include "SceneFactory.h"
 // #include "Window.h"
 #include "Profiler.h"
-#include "mpi/MpiEnv.h"
 #include "rendering/BoundsMap.h"
 #include "rendering/Scene.h"
-#include "utils/File.h"
-#include "utils/Fmt.h"
 #include "utils/Json.h"
+#include <pilot/Logger.h>
+
+#include <pilot/io/DataSetUtils.h>
+#include <pilot/io/PathUtils.h>
+#include <pilot/mpi/Environment.h>
 
 #include <vtkm/cont/Initialize.h>
 #include <vtkm/io/FileUtils.h>
@@ -73,7 +75,7 @@ struct Beams::InternalsType
   {
     const char* CONFIG_FILE_NAME = "config.json";
     std::string configFilePath = vtkm::io::MergePaths(this->DataDir, CONFIG_FILE_NAME);
-    if (!beams::io::File::FileExists(configFilePath))
+    if (!pilot::io::PathUtils::FileExists(configFilePath))
     {
       return Result::Failed(fmt::format("Config file '{}' not found", configFilePath));
     }
@@ -116,7 +118,7 @@ struct Beams::InternalsType
   std::string CurrentPresetName;
   std::shared_ptr<beams::rendering::Scene> Scene;
   std::shared_ptr<vtkm::rendering::CanvasRayTracer> Canvas;
-  std::shared_ptr<beams::mpi::MpiEnv> Mpi;
+  std::shared_ptr<pilot::mpi::Environment> Mpi;
   std::shared_ptr<beams::Profiler> Profiler;
 };
 
@@ -128,7 +130,7 @@ int ToMs(vtkm::Float64 t)
 void PrintDeviceInfo()
 {
 #ifdef VTKM_ENABLE_OPENMP
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   auto& runtimeConfig = vtkm::cont::RuntimeDeviceInformation{}.GetRuntimeConfiguration(
     vtkm::cont::DeviceAdapterTagOpenMP());
   vtkm::Id maxThreads = 0;
@@ -142,7 +144,7 @@ void PrintDeviceInfo()
 
 void PrintTimeStats(const std::string& label, vtkm::Float64 time)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   auto comm = mpi->Comm;
   MPI_Comm mpiComm = vtkmdiy::mpi::mpi_cast(comm->handle());
   std::vector<vtkm::Float64> allTimes(mpi->Size, -1.0f);
@@ -154,20 +156,20 @@ void PrintTimeStats(const std::string& label, vtkm::Float64 time)
     auto maxTime = ToMs(*(minMaxTime.second));
     auto avgTime = ToMs(std::accumulate(allTimes.begin(), allTimes.end(), 0.0) /
                         static_cast<vtkm::Float64>(allTimes.size()));
-    Fmt::Println("{}: Min = {} ms, Max = {} ms, Avg = {} ms", label, minTime, maxTime, avgTime);
+    LOG::Println("{}: Min = {} ms, Max = {} ms, Avg = {} ms", label, minTime, maxTime, avgTime);
   }
 }
 
 void PrintRootTimeStat(const std::string& label, vtkm::Float64 time)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   if (mpi->Rank == 0)
   {
-    Fmt::Println("{}: Time = {} ms", label, ToMs(time));
+    LOG::Println("{}: Time = {} ms", label, ToMs(time));
   }
 }
 
-Beams::Beams(std::shared_ptr<beams::mpi::MpiEnv> mpiEnv)
+Beams::Beams(std::shared_ptr<pilot::mpi::Environment> mpiEnv)
   : Internals(new InternalsType())
 {
   this->Internals->Mpi = mpiEnv;
@@ -211,8 +213,8 @@ void Beams::LoadScene()
   this->Internals->Scene->Canvas = this->Internals->Canvas.get();
 
   auto scene = this->Internals->Scene;
-  auto mpi = beams::mpi::MpiEnv::Get();
-  Fmt::Println0("Scene loaded with global bounds: {}", scene->BoundsMap->GlobalBounds);
+  auto mpi = pilot::mpi::Environment::Get();
+  LOG::Println0("Scene loaded with global bounds: {}", scene->BoundsMap->GlobalBounds);
 }
 
 void Beams::SetupScene()
@@ -223,60 +225,81 @@ void Beams::SetupScene()
 
 void Beams::Run()
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
 
   this->LoadScene();
-  std::shared_ptr<beams::rendering::Scene> scene = this->Internals->Scene;
-  this->SetupScene();
-  this->Internals->Profiler = std::make_shared<beams::Profiler>("RenderCells");
-  scene->Mapper.SetProfiler(this->Internals->Profiler);
-  scene->Mapper.RenderCells(scene->DataSet.GetCellSet(),
-                            scene->DataSet.GetCoordinateSystem(),
-                            scene->DataSet.GetField(scene->FieldName),
-                            scene->ColorTable,
-                            scene->Camera,
-                            scene->Range);
-  this->Internals->Profiler->Collect();
-  if (mpi->Rank == 0)
-  {
-    std::stringstream ss;
-    ss << "\n";
-    this->Internals->Profiler->PrintSummary(ss);
-    Fmt::Println(ss.str());
-  }
-  PrintTimeStats("Phase 1", Phase1Time);
-  PrintTimeStats("Phase 2", Phase2Time);
-  PrintTimeStats("Phase 3", Phase3Time);
-  PrintTimeStats("Phase 4", Phase4Time);
-  PrintRootTimeStat("Phase 5", Phase5Time);
+  vtkm::Vec3f_32 lightPosOrigin{ 0.5f, 0.5f, 0.5f };
+  vtkm::Float32 r = 0.5f;
+  vtkm::Float32 theta = 0.0f;
+  vtkm::Float32 phi = 0.0f;
+  vtkm::Float32 maxPhi = vtkm::TwoPif();
+  vtkm::Float32 maxTheta = vtkm::Pif();
+  vtkm::Float32 dPhi = 5.0f * vtkm::Pi_180f();
+  vtkm::Float32 dThetha = 5.0f * vtkm::Pi_180f();
 
-  if (mpi->Rank == 0)
+  std::shared_ptr<beams::rendering::Scene> scene = this->Internals->Scene;
+  int count = 0;
+  while (theta <= maxTheta && phi <= maxPhi)
   {
-    this->SaveCanvas(0);
-    this->SaveDataSet(0);
+    // scene->LightPosition =
+    //   lightPosOrigin + r * vtkm::Vec3f_32{ 0.0f, vtkm::Sin(phi), vtkm::Cos(phi) };
+    scene->LightPosition =
+      lightPosOrigin + r * vtkm::Vec3f_32{ vtkm::Cos(phi), vtkm::Sin(phi), 0.0f };
+    // scene->LightPosition = vtkm::Vec3f_32{ 0.0f, 0.5f, 1.5f };
+    this->SetupScene();
+    this->Internals->Profiler = std::make_shared<beams::Profiler>("RenderCells");
+    scene->Mapper.SetProfiler(this->Internals->Profiler);
+    scene->Mapper.RenderCells(scene->DataSet.GetCellSet(),
+                              scene->DataSet.GetCoordinateSystem(),
+                              scene->DataSet.GetField(scene->FieldName),
+                              scene->ColorTable,
+                              scene->Camera,
+                              scene->Range);
+    this->Internals->Profiler->Collect();
+    if (mpi->Rank == 0)
+    {
+      std::stringstream ss;
+      ss << "\n";
+      this->Internals->Profiler->PrintSummary(ss);
+      LOG::Println(ss.str());
+    }
+    PrintTimeStats("Phase 1", Phase1Time);
+    PrintTimeStats("Phase 2", Phase2Time);
+    PrintTimeStats("Phase 3", Phase3Time);
+    PrintTimeStats("Phase 4", Phase4Time);
+    PrintRootTimeStat("Phase 5", Phase5Time);
+
+    if (mpi->Rank == 0)
+    {
+      this->SaveCanvas(count++);
+      // this->SaveDataSet(0);
+    }
+
+    // theta += dThetha;
+    phi += dPhi;
   }
 }
 
 void Beams::SaveCanvas(int num)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   std::stringstream ss;
   std::stringstream numSs;
   numSs << std::setw(3) << std::setfill('0') << num;
   ss << this->Internals->Scene->Id << "_" << mpi->Rank << "_" << numSs.str() << ".png";
-  Fmt::Println("Saving {}", ss.str());
+  LOG::Println("Saving {}", ss.str());
   this->Internals->Canvas->SaveAs(ss.str());
 }
 
 void Beams::SaveDataSet(int num)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   std::stringstream ss;
   std::stringstream numSs;
   numSs << std::setw(3) << std::setfill('0') << num;
   ss << this->Internals->Scene->Id << "_" << mpi->Rank << "_" << numSs.str() << ".vtk";
-  Fmt::Println("Saving {}", ss.str());
-  beams::io::File::SaveDataSet(this->Internals->Scene->DataSet, ss.str());
+  LOG::Println("Saving {}", ss.str());
+  pilot::io::DataSetUtils::Write(this->Internals->Scene->DataSet, ss.str());
 }
 
 } // namespace beams

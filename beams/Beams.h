@@ -3,20 +3,17 @@
 
 #include "Result.h"
 
+#include <pilot/mpi/Environment.h>
+
 #include <memory>
 #include <string>
 
 namespace beams
 {
-namespace mpi
-{
-struct MpiEnv;
-} // namespace beams::mpi
-
 class Beams
 {
 public:
-  Beams(std::shared_ptr<beams::mpi::MpiEnv> mpiEnv);
+  Beams(std::shared_ptr<pilot::mpi::Environment> mpiEnv);
 
   beams::Result Initialize(int& argc, char** argv);
 

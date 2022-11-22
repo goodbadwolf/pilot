@@ -1,9 +1,10 @@
 #include "Chunk.h"
-#include <pilot/DataSetUtils.h>
+
+#include <args.hxx>
 #include <pilot/Result.h>
 #include <pilot/StringUtils.h>
-#include <pilot/System.h>
-#include <pilot/utils/args.hxx>
+#include <pilot/io/DataSetUtils.h>
+#include <pilot/system/SystemUtils.h>
 
 #include <vtkm/cont/Initialize.h>
 #include <vtkm/filter/FieldSelection.h>
@@ -84,7 +85,7 @@ Options ParseOptions(int& argc, char** argv)
   {
     parser.ParseCLI(argc, argv);
   }
-  catch (const args::Help&)
+  catch (const args::Help& _)
   {
     std::cerr << parser << std::endl;
     exit(EXIT_SUCCESS);
@@ -129,7 +130,7 @@ int main(int argc, char** argv)
   auto vtkmOpts = vtkm::cont::InitializeOptions::DefaultAnyDevice;
   vtkm::cont::Initialize(argc, argv, vtkmOpts);
 
-  auto readResult = pilot::DataSetUtils::Read(opts.InputFileName);
+  auto readResult = pilot::io::DataSetUtils::Read(opts.InputFileName);
   if (readResult.IsError())
   {
     pilot::system::Fail(readResult.Error);

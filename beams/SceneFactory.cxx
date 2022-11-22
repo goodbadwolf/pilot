@@ -1,10 +1,12 @@
 #include "SceneFactory.h"
 #include "rendering/BonsaiScene.h"
 #include "rendering/EngineScene.h"
+#include "rendering/FootScene.h"
+#include "rendering/HeadScene.h"
 #include "rendering/SpheresScene.h"
 #include "rendering/SubdividedSpheresScene.h"
 #include "rendering/VortexPatchScene.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
 
 namespace beams
 {
@@ -30,9 +32,17 @@ std::shared_ptr<beams::rendering::Scene> SceneFactory::CreateFromPreset(const be
   {
     return beams::rendering::BonsaiScene::CreateFromPreset(preset);
   }
+  else if (preset.DataSetOptions.Factory == "foot")
+  {
+    return beams::rendering::FootScene::CreateFromPreset(preset);
+  }
+  else if (preset.DataSetOptions.Factory == "head")
+  {
+    return beams::rendering::HeadScene::CreateFromPreset(preset);
+  }
   else
   {
-    Fmt::Println("Trying to load preset from invalid dataset type");
+    LOG::Println("Trying to load preset from invalid dataset type");
     return nullptr;
   }
 }

@@ -4,7 +4,7 @@
 #include "../Intersections.h"
 #include "LightRayOperations.h"
 #include "LightRays.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
 
 #include "Lights.h"
 #include <vtkm/Swap.h>
@@ -114,7 +114,6 @@ public:
   VTKM_EXEC
   inline void GetPoint(const vtkm::Id& index, vtkm::Vec3f_32& point) const
   {
-    BOUNDS_CHECK(Coordinates, index);
     point = Coordinates.Get(index);
   }
 
@@ -527,12 +526,12 @@ vtkm::Float32 GetMaxAlpha(const vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32,
 
 void SaveTransmittance(const vtkm::cont::DataSet& ds, const std::string& suffix)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   std::stringstream ss;
   std::string s = (suffix.size() > 0) ? ("_" + suffix) : "";
   ss << "transmittances"
      << "_" << mpi->Rank << s << ".vtk";
-  Fmt::Println("Saving {}", ss.str());
+  LOG::Println("Saving {}", ss.str());
   vtkm::io::VTKDataSetWriter writer(ss.str());
   writer.WriteDataSet(ds);
 }
@@ -630,7 +629,7 @@ void GetNonLocalHits(TransmittanceEstimator& transmittanceEstimator,
                      vtkm::cont::ArrayHandle<vtkm::Id>& hitOffsets,
                      vtkm::cont::ArrayHandle<TransmittanceRayBlockHit>& hits)
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   vtkm::cont::Invoker invoker{ Device() };
 
   invoker(CountNonLocalBlockHits{ mpi->Rank, lights.Locations[0], useGlancingHits },

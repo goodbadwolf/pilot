@@ -1,8 +1,8 @@
 #include "SubdividedSpheresScene.h"
 #include "../sources/Spheres.h"
 #include "PointLight.h"
-#include "mpi/MpiEnv.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
+#include <pilot/mpi/Environment.h>
 
 #include <vtkm/Types.h>
 #include <vtkm/rendering/CanvasRayTracer.h>
@@ -19,7 +19,7 @@ std::shared_ptr<beams::rendering::Scene> SubdividedSpheresScene::CreateFromPrese
   totalTimer.Start();
 
   auto scene = std::make_shared<beams::rendering::SubdividedSpheresScene>();
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   if (mpi->Size < 8)
     mpi->ReshapeAsRectangle();
   else
@@ -87,14 +87,14 @@ std::shared_ptr<beams::rendering::Scene> SubdividedSpheresScene::CreateFromPrese
 
   scene->LightColor = preset.LightOptions.Lights[0].Color;
   scene->ShadowMapSize = preset.OpacityMapOptions.CalculateSize(dims);
-  Fmt::Println0("Opacity map size = {}", scene->ShadowMapSize);
+  LOG::Println0("Opacity map size = {}", scene->ShadowMapSize);
 
   totalTimer.Stop();
 
   auto& blockBounds = scene->BoundsMap->BlockBounds;
   for (vtkm::Id i = 0; i < mpi->Size; ++i)
   {
-    Fmt::Println0("Local: Bounds {} => {}", i, blockBounds[i]);
+    LOG::Println0("Local: Bounds {} => {}", i, blockBounds[i]);
   }
 
   return scene;
@@ -102,7 +102,7 @@ std::shared_ptr<beams::rendering::Scene> SubdividedSpheresScene::CreateFromPrese
 
 beams::Result SubdividedSpheresScene::Ready()
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
 
   vtkm::rendering::Color background(1.0f, 1.0f, 1.0f, 1.0f);
   vtkm::rendering::Color foreground(0.0f, 0.0f, 0.0f, 1.0f);

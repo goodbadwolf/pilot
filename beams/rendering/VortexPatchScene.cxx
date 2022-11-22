@@ -1,8 +1,8 @@
 #include "VortexPatchScene.h"
 #include "../sources/Spheres.h"
 #include "PointLight.h"
-#include "mpi/MpiEnv.h"
-#include "utils/Fmt.h"
+#include <pilot/Logger.h>
+#include <pilot/mpi/Environment.h>
 
 #include <vtkm/Types.h>
 #include <vtkm/io/FileUtils.h>
@@ -20,7 +20,7 @@ std::shared_ptr<beams::rendering::Scene> VortexPatchScene::CreateFromPreset(
   totalTimer.Start();
 
   auto scene = std::make_shared<beams::rendering::VortexPatchScene>();
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
   if (mpi->Size < 8)
     mpi->ReshapeAsRectangle();
   else
@@ -114,14 +114,14 @@ std::shared_ptr<beams::rendering::Scene> VortexPatchScene::CreateFromPreset(
 
   scene->LightColor = preset.LightOptions.Lights[0].Color;
   scene->ShadowMapSize = { 32, 32, 32 };
-  Fmt::Println0("Opacity map size = {}", scene->ShadowMapSize);
+  LOG::Println0("Opacity map size = {}", scene->ShadowMapSize);
 
   totalTimer.Stop();
 
   auto& blockBounds = scene->BoundsMap->BlockBounds;
   for (vtkm::Id i = 0; i < mpi->Size; ++i)
   {
-    Fmt::Println0("Local: Bounds {} => {}", i, blockBounds[i]);
+    LOG::Println0("Local: Bounds {} => {}", i, blockBounds[i]);
   }
 
   return scene;
@@ -129,7 +129,7 @@ std::shared_ptr<beams::rendering::Scene> VortexPatchScene::CreateFromPreset(
 
 beams::Result VortexPatchScene::Ready()
 {
-  auto mpi = beams::mpi::MpiEnv::Get();
+  auto mpi = pilot::mpi::Environment::Get();
 
   vtkm::rendering::Color background(1.0f, 1.0f, 1.0f, 1.0f);
   vtkm::rendering::Color foreground(0.0f, 0.0f, 0.0f, 1.0f);
@@ -149,7 +149,7 @@ beams::Result VortexPatchScene::Ready()
   this->Mapper.SetBoundsMap(this->BoundsMap.get());
   this->Mapper.SetUseShadowMap(true);
   this->Mapper.SetShadowMapSize(this->ShadowMapSize);
-  this->LightPosition = vtkm::Vec3f_32{ 0.5f, 0.1f, 0.5f };
+  // this->LightPosition = vtkm::Vec3f_32{ 0.5f, 0.1f, 0.5f };
   std::shared_ptr<beams::rendering::Light> light =
     std::make_shared<beams::rendering::PointLight<vtkm::Float32>>(
       this->LightPosition, this->LightColor, 2.0f);
