@@ -12,6 +12,7 @@ namespace beams
 {
 std::shared_ptr<beams::rendering::Scene> SceneFactory::CreateFromPreset(const beams::Preset& preset)
 {
+  /*
   if (preset.DataSetOptions.Factory == "spheres")
   {
     return beams::rendering::SpheresScene::CreateFromPreset(preset);
@@ -45,5 +46,6 @@ std::shared_ptr<beams::rendering::Scene> SceneFactory::CreateFromPreset(const be
     LOG::Println("Trying to load preset from invalid dataset type");
     return nullptr;
   }
+  */
 }
 } // namespace beams

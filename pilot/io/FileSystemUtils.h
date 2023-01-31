@@ -6,7 +6,7 @@ namespace pilot
 {
 namespace io
 {
-struct PathUtils
+struct FileSystemUtils
 {
   static bool FileExists(const std::string& path);
 };

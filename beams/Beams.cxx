@@ -9,8 +9,9 @@
 #include <pilot/Logger.h>
 
 #include <pilot/io/DataSetUtils.h>
-#include <pilot/io/PathUtils.h>
+#include <pilot/io/FileSystemUtils.h>
 #include <pilot/mpi/Environment.h>
+#include <pilot/system/SystemUtils.h>
 
 #include <vtkm/cont/Initialize.h>
 #include <vtkm/io/FileUtils.h>
@@ -18,7 +19,8 @@
 #include <vtkm/thirdparty/diy/diy.h>
 #include <vtkm/thirdparty/diy/mpi-cast.h>
 
-#include "fmt/core.h"
+#include <fmt/core.h>
+#include <toml++/toml.h>
 
 #include <fstream>
 #include <iomanip>
@@ -33,11 +35,21 @@ vtkm::Float64 Phase5Time;
 
 namespace beams
 {
+#define CHECK_RESULT(statement)                       \
+  {                                                   \
+    auto result = (statement);                        \
+    if (!result.IsSuccess())                          \
+    {                                                 \
+      return pilot::Result<bool>::Fail(result.Error); \
+    }                                                 \
+  }
+
+
 struct Beams::InternalsType
 {
   InternalsType() = default;
 
-  Result ParseArgs(int argc, char** argv)
+  pilot::Result<bool> ParseArgs(int argc, char** argv)
   {
     // argv[0] is the name of the binary, so skipping
     for (int i = 1; i < argc; ++i)
@@ -51,9 +63,9 @@ struct Beams::InternalsType
 
       auto argKey = arg.substr(0, seperatorPos);
       auto argVal = arg.substr(seperatorPos + 1);
-      if (argKey == "--data-dir")
+      if (argKey == "--base-dir")
       {
-        this->DataDir = argVal;
+        this->BaseDir = argVal;
       }
       else if (argKey == "--preset")
       {
@@ -61,34 +73,38 @@ struct Beams::InternalsType
       }
     }
 
-    if (this->DataDir.length() > 0)
+    if (this->BaseDir.length() > 0)
     {
-      return Result{ .Success = true };
+      return pilot::Result<bool>::Success(true);
     }
     else
     {
-      return Result{ .Success = false, .Err = "--data-dir not specified" };
+      return pilot::Result<bool>::Fail("--base-dir not specified");
     }
   }
 
-  Result LoadConfig()
+  pilot::BoolResult LoadConfig()
   {
-    const char* CONFIG_FILE_NAME = "config.json";
-    std::string configFilePath = vtkm::io::MergePaths(this->DataDir, CONFIG_FILE_NAME);
-    if (!pilot::io::PathUtils::FileExists(configFilePath))
+    using Result = pilot::BoolResult;
+
+    const std::string CONFIG_FILE_NAME = "stage.toml";
+    std::string configFilePath = vtkm::io::MergePaths(this->BaseDir, CONFIG_FILE_NAME);
+    if (!pilot::io::FileSystemUtils::FileExists(configFilePath))
     {
-      return Result::Failed(fmt::format("Config file '{}' not found", configFilePath));
+      return Result::Fail(fmt::format("Config file '{}' not found", configFilePath));
     }
 
-    auto result = this->Cfg.LoadFromFile(configFilePath);
-    if (!result.Success)
+    toml::table configTbl = toml::parse_file(configFilePath);
+    auto configLoadResult = this->Config.Deserialize(configTbl);
+    if (!configLoadResult.IsSuccess())
     {
-      return Result::Failed(result.Err);
+      return Result::Fail(configLoadResult.Error);
     }
 
-    return Result::Succeeded();
+    return Result::Success(true);
   }
 
+  /*
   Result LoadScene(const std::string& presetName)
   {
     this->CurrentPresetName = presetName;
@@ -110,11 +126,12 @@ struct Beams::InternalsType
         fmt::format("Unable to load data set for preset '{}'", this->CurrentPresetName));
     }
   }
+  */
 
-  std::string DataDir;
+  std::string BaseDir;
   std::string StartPresetName;
   // beams::Window Win;
-  beams::Config Cfg;
+  beams::Config Config;
   std::string CurrentPresetName;
   std::shared_ptr<beams::rendering::Scene> Scene;
   std::shared_ptr<vtkm::rendering::CanvasRayTracer> Canvas;
@@ -125,21 +142,6 @@ struct Beams::InternalsType
 int ToMs(vtkm::Float64 t)
 {
   return static_cast<int>(t * 1000);
-}
-
-void PrintDeviceInfo()
-{
-#ifdef VTKM_ENABLE_OPENMP
-  auto mpi = pilot::mpi::Environment::Get();
-  auto& runtimeConfig = vtkm::cont::RuntimeDeviceInformation{}.GetRuntimeConfiguration(
-    vtkm::cont::DeviceAdapterTagOpenMP());
-  vtkm::Id maxThreads = 0;
-  vtkm::Id numThreads = 0;
-  runtimeConfig.GetMaxThreads(maxThreads);
-  runtimeConfig.GetThreads(numThreads);
-  std::cerr << mpi->Hostname << " => "
-            << "MaxThreads = " << maxThreads << ", NumThreads = " << numThreads << "\n";
-#endif
 }
 
 void PrintTimeStats(const std::string& label, vtkm::Float64 time)
@@ -175,25 +177,27 @@ Beams::Beams(std::shared_ptr<pilot::mpi::Environment> mpiEnv)
   this->Internals->Mpi = mpiEnv;
 }
 
-Result Beams::Initialize(int& argc, char** argv)
+pilot::Result<bool> Beams::Initialize(int& argc, char** argv)
 {
+  auto mpiEnv = this->Internals->Mpi;
+  LOG::Info("Running Beams on host '{}'", mpiEnv->Hostname);
+
   auto opts = vtkm::cont::InitializeOptions::RequireDevice;
   vtkm::cont::Initialize(argc, argv, opts);
-  PrintDeviceInfo();
+  pilot::system::PrintVtkmDeviceInfo();
 
-  CHECK_RESULT(this->Internals->ParseArgs(argc, argv), "Error initializing beams")
-  CHECK_RESULT(this->Internals->LoadConfig(), "Error initializing beams");
+  CHECK_RESULT(this->Internals->ParseArgs(argc, argv));
+  CHECK_RESULT(this->Internals->LoadConfig());
   /*
   result = this->Internals->Win.Initialize("Beams", 1920, 1080);
   CHECK_RESULT(result)
   */
-#undef CHECK_RESULT
-
-  return Result::Succeeded();
+  return pilot::Result<bool>::Success(true);
 }
 
 void Beams::LoadScene()
 {
+  /*
   std::string presetName;
   if (!(this->Internals->StartPresetName.empty()))
   {
@@ -215,16 +219,20 @@ void Beams::LoadScene()
   auto scene = this->Internals->Scene;
   auto mpi = pilot::mpi::Environment::Get();
   LOG::Println0("Scene loaded with global bounds: {}", scene->BoundsMap->GlobalBounds);
+  */
 }
 
 void Beams::SetupScene()
 {
+  /*
   this->Internals->Canvas->Clear();
   this->Internals->Scene->Ready();
+  */
 }
 
 void Beams::Run()
 {
+  /*
   auto mpi = pilot::mpi::Environment::Get();
 
   this->LoadScene();
@@ -235,7 +243,7 @@ void Beams::Run()
   vtkm::Float32 maxPhi = vtkm::TwoPif();
   vtkm::Float32 maxTheta = vtkm::Pif();
   vtkm::Float32 dPhi = 5.0f * vtkm::Pi_180f();
-  vtkm::Float32 dThetha = 5.0f * vtkm::Pi_180f();
+  // vtkm::Float32 dThetha = 5.0f * vtkm::Pi_180f();
 
   std::shared_ptr<beams::rendering::Scene> scene = this->Internals->Scene;
   int count = 0;
@@ -278,6 +286,7 @@ void Beams::Run()
     // theta += dThetha;
     phi += dPhi;
   }
+  */
 }
 
 void Beams::SaveCanvas(int num)
@@ -301,5 +310,7 @@ void Beams::SaveDataSet(int num)
   LOG::Println("Saving {}", ss.str());
   pilot::io::DataSetUtils::Write(this->Internals->Scene->DataSet, ss.str());
 }
+
+#undef CHECK_RESULT
 
 } // namespace beams

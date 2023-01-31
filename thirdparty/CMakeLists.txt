@@ -29,8 +29,9 @@ add_subdirectory(vtkm)
 # toml++
 FetchContent_Declare(
     tomlplusplus
-    GIT_REPOSITORY https://github.com/marzer/tomlplusplus
-    GIT_TAG        v3.2.0
+    GIT_REPOSITORY        https://github.com/marzer/tomlplusplus
+    GIT_TAG               v3.2.0
+    OVERRIDE_FIND_PACKAGE
 )
 FetchContent_MakeAvailable(tomlplusplus)
 add_subdirectory(tomlplusplus)

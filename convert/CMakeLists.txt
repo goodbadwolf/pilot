@@ -9,6 +9,7 @@ find_package(VTKm REQUIRED QUIET)
 set (CONVERT_SRCS
   main.cxx
   Chunk.cxx
+  Transform.cxx
 )
 
 add_executable(Convert ${CONVERT_SRCS})
@@ -19,6 +20,7 @@ install(
 target_link_libraries(Convert 
   PRIVATE Pilot 
   PRIVATE vtkm_filter 
+  # PRIVATE vtkm_filter_field_transform
   PRIVATE vtkm_io
   PRIVATE args
 )

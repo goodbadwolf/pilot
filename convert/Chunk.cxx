@@ -62,10 +62,9 @@ ChunkResult ChunkDataSet(const vtkm::cont::DataSet& dataSet,
 
   if (!(isUniformCoordsArray || isRectilinearArray))
   {
-    return ChunkResult("Unknown coords ArrayHandle type: " + coords.GetArrayTypeName());
+    return ChunkResult::Fail("Unknown coords ArrayHandle type: " + coords.GetArrayTypeName());
   }
 
-  int totalChunks = chunksX * chunksY * chunksZ;
   vtkm::Bounds bounds = coordSystem.GetBounds();
   vtkm::Vec3f origin = { static_cast<vtkm::FloatDefault>(bounds.X.Min),
                          static_cast<vtkm::FloatDefault>(bounds.Y.Min),
@@ -104,6 +103,7 @@ ChunkResult ChunkDataSet(const vtkm::cont::DataSet& dataSet,
   std::cerr << "Chunk Size    = " << chunkSize << "\n";
   std::cerr << "Chunk Dims    = " << chunkDims << "\n";
   std::cerr << "Chunk Spacing = " << chunkSpacing << "\n";
+  std::cerr << "Number of chunks = " << (chunksX * chunksY * chunksZ) << "\n";
 
   DataSets dataSets;
   auto index = 0;
@@ -127,7 +127,7 @@ ChunkResult ChunkDataSet(const vtkm::cont::DataSet& dataSet,
           }
           else
           {
-            return ChunkResult("Unsupported chunk CellSet type");
+            return ChunkResult::Fail("Unsupported chunk CellSet type");
           }
 
           vtkm::filter::resampling::Probe probe;
@@ -136,19 +136,19 @@ ChunkResult ChunkDataSet(const vtkm::cont::DataSet& dataSet,
           vtkm::cont::DataSet chunk = probe.Execute(dataSet);
           std::cerr << "Chunk " << (index++) << " created at origin = " << chunkOrigin << "\n";
           auto filterResult = FilterFields(chunk, fields);
-          chunk = filterResult.Outcome;
+          chunk = filterResult.Value;
           dataSets.push_back(chunk);
         }
         catch (const vtkm::cont::Error& e)
         {
-          return ChunkResult(e.GetMessage());
+          return ChunkResult::Fail(e.GetMessage());
         }
       }
     }
   }
   std::cerr << std::endl;
 
-  return ChunkResult(dataSets);
+  return ChunkResult::Success(dataSets);
 }
 
 SaveResult SaveChunksToDisk(const DataSets& dataSets,
@@ -166,14 +166,14 @@ SaveResult SaveChunksToDisk(const DataSets& dataSets,
     std::string fileName = ss.str();
     std::cerr << "Saving dataset at " << fileName << "\n";
     auto result = pilot::io::DataSetUtils::Write(dataSet, fileName, fileType);
-    if (result.IsError())
+    if (result.IsFailure())
     {
-      return SaveResult(result.Error);
+      return SaveResult::Fail(result.Error);
     }
   }
 
   std::cerr << std::endl;
-  return SaveResult(true);
+  return SaveResult::Success(true);
 }
 
 FilterResult FilterFields(vtkm::cont::DataSet& dataSet, vtkm::filter::FieldSelection fieldSelection)
@@ -199,7 +199,7 @@ FilterResult FilterFields(vtkm::cont::DataSet& dataSet, vtkm::filter::FieldSelec
     }
   }
 
-  return FilterResult(filteredDataSet);
+  return FilterResult::Success(filteredDataSet);
 }
 
 std::ostream& operator<<(std::ostream& os, const ChunkCellSetType& cellSetType)

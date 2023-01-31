@@ -1,7 +1,8 @@
 #include "Spheres.h"
 
 #include <vtkm/VectorAnalysis.h>
-#include <vtkm/filter/FilterField.h>
+#include <vtkm/cont/Algorithm.h>
+#include <vtkm/filter/NewFilterField.h>
 #include <vtkm/worklet/WorkletMapField.h>
 
 using CartesianCoordinateHandle = vtkm::cont::ArrayHandle<vtkm::Float32>;
@@ -94,7 +95,7 @@ struct SphereFieldGenerator : public vtkm::worklet::WorkletMapField
   bool HasFloor;
 };
 
-class SphereField : public vtkm::filter::FilterField<SphereField>
+class SphereField : public vtkm::filter::NewFilterField
 {
 public:
   VTKM_CONT SphereField(const vtkm::Float32& defaultFieldValue,
@@ -111,12 +112,7 @@ public:
     this->SetUseCoordinateSystemAsField(true);
   }
 
-  template <typename FieldType, typename DerivedPolicy>
-  VTKM_CONT vtkm::cont::DataSet DoExecute(
-    const vtkm::cont::DataSet& input,
-    const FieldType& vtkmNotUsed(field),
-    const vtkm ::filter::FieldMetadata& fieldMetadata,
-    vtkm::filter::PolicyBase<DerivedPolicy> vtkmNotUsed(policy))
+  VTKM_CONT vtkm::cont::DataSet DoExecute(const vtkm::cont::DataSet& input) override
   {
     vtkm::cont::ArrayHandle<vtkm::Float32> sphereFieldData;
     SphereFieldGenerator generator{ this->DefaultFieldValue, this->HasFloor };
@@ -127,8 +123,7 @@ public:
                  this->FieldValues,
                  sphereFieldData);
 
-    return vtkm::filter::CreateResult(
-      input, sphereFieldData, this->GetOutputFieldName(), fieldMetadata);
+    return this->CreateResultFieldPoint(input, this->GetOutputFieldName(), sphereFieldData);
   }
 
 private:

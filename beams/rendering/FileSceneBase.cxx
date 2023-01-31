@@ -38,7 +38,14 @@ vtkm::cont::DataSet FileSceneBase::GetDataSet(const beams::Preset& preset)
   string_replace_all(fileName, "%r", std::to_string(mpi->Rank));
   LOG::Println("Trying to load {}", fileName);
   vtkm::io::VTKDataSetReader source(fileName);
-  return source.ReadDataSet();
+  try
+  {
+    return source.ReadDataSet();
+  }
+  catch (const vtkm::io::ErrorIO& e)
+  {
+    std::cerr << e.GetMessage() << "\n";
+  }
 }
 
 std::string FileSceneBase::GetFieldName(const beams::Preset& vtkmNotUsed(preset))

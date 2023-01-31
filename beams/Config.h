@@ -2,7 +2,10 @@
 #define beams_config_h
 
 #include "Result.h"
-#include <utils/Json.h>
+
+#include <pilot/Result.h>
+#include <pilot/staging/DescriptorResult.h>
+#include <pilot/staging/Stage.h>
 
 #include <vtkm/Types.h>
 
@@ -11,7 +14,7 @@
 
 namespace beams
 {
-
+/*
 struct DataSetOptions
 {
   beams::Result Deserialize(const PJObj& optionsObj);
@@ -92,9 +95,11 @@ struct ColorTableOptions
   vtkm::Float32 RangeMax;
   std::vector<std::pair<vtkm::Float64, vtkm::Float32>> PointAlphas;
 };
+*/
 
 struct Preset
 {
+  /*
   beams::Result Deserialize(const PJObj& presetObj);
 
   friend std::ostream& operator<<(std::ostream& os, const Preset& preset);
@@ -105,16 +110,18 @@ struct Preset
   beams::CameraOptions CameraOptions;
   beams::LightOptions LightOptions;
   beams::ColorTableOptions ColorTableOptions;
+  */
 }; // struct Preset
 
-struct Config
+struct Config : public pilot::staging::Stage
 {
   Config() = default;
+  virtual ~Config() = default;
 
-  beams::Result LoadFromFile(const std::string& filePath);
+  virtual pilot::staging::DescriptorResult Deserialize(const toml::table& descriptorTable) override;
 
-  std::string DefaultPresetName;
-  std::map<std::string, Preset> Presets;
+  //std::string DefaultPresetName;
+  //std::map<std::string, Preset> Presets;
 }; // struct Config
 
 } // namespace beams

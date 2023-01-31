@@ -44,7 +44,7 @@ pilot::Result<bool, std::string> Environment::Initialize(int argc, char* argv[])
     this->Rank = this->Comm->rank();
     this->Size = this->Comm->size();
   }
-  return pilot::Result<bool, std::string>(true);
+  return pilot::Result<bool, std::string>::Success(true);
 }
 
 void Environment::ReshapeAsLine()

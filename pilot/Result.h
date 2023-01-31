@@ -7,31 +7,37 @@ namespace pilot
 {
 enum class ResultTag
 {
-  Valid,
-  Error,
+  Success,
+  Failure,
 };
 
-template <typename ResultType, typename ErrorType>
+template <typename SuccessType, typename FailureType = std::string>
 struct Result
 {
+  using Self = Result<SuccessType, FailureType>;
+
   ResultTag Tag;
-  ResultType Outcome;
-  ErrorType Error;
+  SuccessType Value;
+  FailureType Error;
 
-  Result(const ResultType& result)
-    : Tag(ResultTag::Valid)
-    , Outcome(result)
+  Result() = delete;
+
+  bool IsSuccess() const { return this->Tag == ResultTag::Success; }
+
+  bool IsFailure() const { return this->Tag == ResultTag::Failure; }
+
+  explicit operator bool() const { return this->IsSuccess(); }
+
+  static Self Success(const SuccessType& value)
   {
+    return Self{ .Tag = ResultTag::Success, .Value = value, .Error = FailureType() };
   }
 
-  Result(const ErrorType& error)
-    : Tag(ResultTag::Error)
-    , Error(error)
+  static Self Fail(const FailureType& error)
   {
+    return Self{ .Tag = ResultTag::Failure, .Value = SuccessType(), .Error = error };
   }
-
-  bool IsValid() const { return this->Tag == ResultTag::Valid; }
-
-  bool IsError() const { return this->Tag == ResultTag::Error; }
 };
+
+using BoolResult = Result<bool, std::string>;
 }

@@ -10,41 +10,47 @@
 
 #include <string>
 
-#define LOG_VAR(x) beams::Logger::Println(#x " = {}", x);
+#define LOG_VAR(x) pilot::Logger::Println(#x " = {}", x);
 
-#define LOG_VAR0(x) beams::Logger::Println0(#x " = {}", x);
+#define LOG_VAR0(x) pilot::Logger::Println0(#x " = {}", x);
 
 #define LOG_VEC(v)                   \
-  beams::Logger::PrintArrayHandleln( \
+  pilot::Logger::PrintArrayHandleln( \
     #v, vtkm::cont::make_ArrayHandle(v, vtkm::CopyFlag::Off), false);
 
 #define LOG_VEC0(v)                   \
-  beams::Logger::PrintArrayHandleln0( \
+  pilot::Logger::PrintArrayHandleln0( \
     #v, vtkm::cont::make_ArrayHandle(v, vtkm::CopyFlag::Off), false);
 
 #define LOG_VEC_F(v) \
-  beams::Logger::PrintArrayHandleln(#v, vtkm::cont::make_ArrayHandle(v, vtkm::CopyFlag::Off), true);
+  pilot::Logger::PrintArrayHandleln(#v, vtkm::cont::make_ArrayHandle(v, vtkm::CopyFlag::Off), true);
 
 #define LOG_VEC0_F(v)                 \
-  beams::Logger::PrintArrayHandleln0( \
+  pilot::Logger::PrintArrayHandleln0( \
     #v, vtkm::cont::make_ArrayHandle(v, vtkm::CopyFlag::Off), true);
 
-#define LOG_ARR(a) beams::Logger::PrintArrayHandleln(#a, a);
+#define LOG_ARR(a) pilot::Logger::PrintArrayHandleln(#a, a);
 
-#define LOG_ARR0(a) beams::Logger::PrintArrayHandleln0(#a, a);
+#define LOG_ARR0(a) pilot::Logger::PrintArrayHandleln0(#a, a);
 
-#define LOG_ARR_F(a) beams::Logger::PrintArrayHandleln(#a, a, true);
+#define LOG_ARR_F(a) pilot::Logger::PrintArrayHandleln(#a, a, true);
 
-#define LOG_ARR0_F(a) beams::Logger::PrintArrayHandleln0(#a, a, true);
+#define LOG_ARR0_F(a) pilot::Logger::PrintArrayHandleln0(#a, a, true);
 
-#define LOG_TMR(x) beams::Logger::PrintTimerln(#x, x);
+#define LOG_TMR(x) pilot::Logger::PrintTimerln(#x, x);
 
-#define LOG_TMR0(x) beams::Logger::PrintTimerln0(#x, x);
+#define LOG_TMR0(x) pilot::Logger::PrintTimerln0(#x, x);
 
-namespace beams
+namespace pilot
 {
 struct Logger
 {
+  template <typename S, typename... Args>
+  static void Info(const S& format_str, Args&&... args)
+  {
+    Logger::Println(std::string("[INFO] ") + format_str, args...);
+  }
+
   template <typename S, typename... Args>
   static void Print(const S& format_str, Args&&... args)
   {
@@ -64,7 +70,7 @@ struct Logger
     }
     else
     {
-      fmt::print(stderr, "(MPI Topology not set): {}", s);
+      fmt::print(stderr, "{}", s);
     }
   }
 
@@ -146,4 +152,4 @@ struct Logger
 };
 }
 
-using LOG = beams::Logger;
+using LOG = pilot::Logger;

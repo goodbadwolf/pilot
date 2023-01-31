@@ -1,8 +1,7 @@
 #ifndef beams_beams_h
 #define beams_beams_h
 
-#include "Result.h"
-
+#include <pilot/Result.h>
 #include <pilot/mpi/Environment.h>
 
 #include <memory>
@@ -15,7 +14,7 @@ class Beams
 public:
   Beams(std::shared_ptr<pilot::mpi::Environment> mpiEnv);
 
-  beams::Result Initialize(int& argc, char** argv);
+  pilot::Result<bool> Initialize(int& argc, char** argv);
 
   void Run();
 

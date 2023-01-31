@@ -5,8 +5,7 @@
 
 namespace beams
 {
-
-#define CHECK_RESULT(statement, errPrefix)                                 \
+#define CHECK_RESULT_BEAMS(statement, errPrefix)                           \
   {                                                                        \
     auto result = (statement);                                             \
     if (!result.Success)                                                   \

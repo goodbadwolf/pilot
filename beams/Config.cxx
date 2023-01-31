@@ -1,12 +1,17 @@
 #include "Config.h"
 
-#include "fmt/core.h"
+#include <pilot/staging/Stage.h>
+
+#include <fmt/core.h>
+#include <toml++/toml.h>
+#include <vtkm/io/FileUtils.h>
 
 #include <fstream>
 #include <sstream>
 
 namespace beams
 {
+/*
 template <typename Type>
 beams::Result DeserializeToType(const PJObj& obj, const std::string& attrName, Type& expected)
 {
@@ -134,10 +139,10 @@ beams::Result DeserializeToVectorNative(const PJObj& obj,
 
 beams::Result DataSetOptions::Deserialize(const PJObj& optionsObj)
 {
-  CHECK_RESULT(DeserializeToNativeType(optionsObj, "factory", this->Factory),
-               "Error reading dataSetOptions");
-  CHECK_RESULT(DeserializeToMap(optionsObj, "params", this->Params),
-               "Error reading dataSetOptions");
+  CHECK_RESULT_BEAMS(DeserializeToNativeType(optionsObj, "factory", this->Factory),
+                     "Error reading dataSetOptions");
+  CHECK_RESULT_BEAMS(DeserializeToMap(optionsObj, "params", this->Params),
+                     "Error reading dataSetOptions");
   return Result::Succeeded();
 }
 
@@ -149,43 +154,45 @@ beams::Result OpacityMapOptions::Deserialize(const PJObj& optionsObj)
 
   this->Size = { -1, -1, -1 };
   this->SizeRatio = 0.0f;
-  CHECK_RESULT(DeserializeToNativeType(optionsObj, "enabled", this->Enabled),
-               "Error reading opacityMapOptions");
+  CHECK_RESULT_BEAMS(DeserializeToNativeType(optionsObj, "enabled", this->Enabled),
+                     "Error reading opacityMapOptions");
   if (optionsObj.find("size") != optionsObj.end())
   {
     std::vector<vtkm::Id> tmpSize;
-    CHECK_RESULT(DeserializeToId3(optionsObj, "size", tmpSize), "Error reading opacityMapOptions");
+    CHECK_RESULT_BEAMS(DeserializeToId3(optionsObj, "size", tmpSize),
+                       "Error reading opacityMapOptions");
     this->Size = { tmpSize[0], tmpSize[1], tmpSize[2] };
   }
   else if (optionsObj.find("sizeRatio") != optionsObj.end())
   {
-    CHECK_RESULT(DeserializeToFloat32(optionsObj, "sizeRatio", this->SizeRatio),
-                 "Error reading opacityMapOptions");
+    CHECK_RESULT_BEAMS(DeserializeToFloat32(optionsObj, "sizeRatio", this->SizeRatio),
+                       "Error reading opacityMapOptions");
   }
   else
   {
     return Result::Failed("Error reading opacityMapOptions: No size or sizeRatio");
   }
-  CHECK_RESULT(DeserializeToIdComponent(optionsObj, "numSteps", this->NumSteps),
-               "Error reading opacityMapOptions");
+  CHECK_RESULT_BEAMS(DeserializeToIdComponent(optionsObj, "numSteps", this->NumSteps),
+                     "Error reading opacityMapOptions");
   return Result::Succeeded();
 }
 
 beams::Result CameraOptions::Deserialize(const PJObj& optionsObj)
 {
   const auto DeserializeToFloat32 = DeserializeToNativeType<vtkm::Float32, double>;
-  CHECK_RESULT(DeserializeToNativeType(optionsObj, "type", this->Type),
-               "Error reading cameraOptions");
-  CHECK_RESULT(DeserializeToFloat32(optionsObj, "azimuth", this->Azimuth),
-               "Error reading cameraOptions");
-  CHECK_RESULT(DeserializeToFloat32(optionsObj, "elevation", this->Elevation),
-               "Error reading cameraOptions");
+  CHECK_RESULT_BEAMS(DeserializeToNativeType(optionsObj, "type", this->Type),
+                     "Error reading cameraOptions");
+  CHECK_RESULT_BEAMS(DeserializeToFloat32(optionsObj, "azimuth", this->Azimuth),
+                     "Error reading cameraOptions");
+  CHECK_RESULT_BEAMS(DeserializeToFloat32(optionsObj, "elevation", this->Elevation),
+                     "Error reading cameraOptions");
   return Result::Succeeded();
 }
 
 beams::Result LightOptions::Deserialize(const PJObj& optionsObj)
 {
-  CHECK_RESULT(DeserializeToVector(optionsObj, "lights", this->Lights), "Error reading lights");
+  CHECK_RESULT_BEAMS(DeserializeToVector(optionsObj, "lights", this->Lights),
+                     "Error reading lights");
   return Result::Succeeded();
 }
 
@@ -193,43 +200,45 @@ beams::Result LightOption::Deserialize(const PJObj& optionsObj)
 {
   const auto DeserializeToFloat32 = DeserializeToNativeType<vtkm::Float32, double>;
   const auto DeserializeToVecFloat32 = DeserializeToVectorNative<vtkm::Float32, double>;
-  CHECK_RESULT(DeserializeToNativeType(optionsObj, "type", this->Type),
-               "Error reading lightOption");
+  CHECK_RESULT_BEAMS(DeserializeToNativeType(optionsObj, "type", this->Type),
+                     "Error reading lightOption");
   std::vector<vtkm::Float32> tmpPos;
   std::vector<vtkm::Float32> tmpColor;
-  CHECK_RESULT(DeserializeToVecFloat32(optionsObj, "position", tmpPos),
-               "Error reading lightOption");
+  CHECK_RESULT_BEAMS(DeserializeToVecFloat32(optionsObj, "position", tmpPos),
+                     "Error reading lightOption");
   this->Position = { tmpPos[0], tmpPos[1], tmpPos[2] };
-  CHECK_RESULT(DeserializeToVecFloat32(optionsObj, "color", tmpColor), "Error reading lightOption");
+  CHECK_RESULT_BEAMS(DeserializeToVecFloat32(optionsObj, "color", tmpColor),
+                     "Error reading lightOption");
   this->Color = { tmpColor[0], tmpColor[1], tmpColor[2] };
-  CHECK_RESULT(DeserializeToFloat32(optionsObj, "intensity", this->Intensity),
-               "Error reading lightOption");
+  CHECK_RESULT_BEAMS(DeserializeToFloat32(optionsObj, "intensity", this->Intensity),
+                     "Error reading lightOption");
   return Result::Succeeded();
 }
 
 beams::Result ColorTableOptions::Deserialize(const PJObj& optionsObj)
 {
   const auto DeserializeToFloat32 = DeserializeToNativeType<vtkm::Float32, double>;
-  const auto DeserializeToFloat64 = DeserializeToNativeType<vtkm::Float64, double>;
   const auto DeserializeToVecFloat32 = DeserializeToVectorNative<vtkm::Float32, double>;
   const auto DeserializeToVecFloat64 = DeserializeToVectorNative<vtkm::Float64, double>;
-  CHECK_RESULT(DeserializeToNativeType(optionsObj, "name", this->Name), "Error reading preset");
+  CHECK_RESULT_BEAMS(DeserializeToNativeType(optionsObj, "name", this->Name),
+                     "Error reading preset");
   std::vector<vtkm::Float64> tmpPointXs;
   std::vector<vtkm::Float32> tmpPointAlphas;
-  CHECK_RESULT(DeserializeToVecFloat64(optionsObj, "pointXs", tmpPointXs), "Error reading pointXs");
-  CHECK_RESULT(DeserializeToVecFloat32(optionsObj, "pointAlphas", tmpPointAlphas),
-               "Error reading pointAlphas");
+  CHECK_RESULT_BEAMS(DeserializeToVecFloat64(optionsObj, "pointXs", tmpPointXs),
+                     "Error reading pointXs");
+  CHECK_RESULT_BEAMS(DeserializeToVecFloat32(optionsObj, "pointAlphas", tmpPointAlphas),
+                     "Error reading pointAlphas");
   if (tmpPointXs.size() != tmpPointAlphas.size())
   {
     return Result::Failed(fmt::format(
       "pointXs.size() != pointAlphas.size(): {} != {}", tmpPointXs.size(), tmpPointAlphas.size()));
   }
-  CHECK_RESULT(DeserializeToFloat32(optionsObj, "rangeMin", this->RangeMin),
-               "Error reading colorTableOptions");
-  CHECK_RESULT(DeserializeToFloat32(optionsObj, "rangeMax", this->RangeMax),
-               "Error reading colorTableOptions");
+  CHECK_RESULT_BEAMS(DeserializeToFloat32(optionsObj, "rangeMin", this->RangeMin),
+                     "Error reading colorTableOptions");
+  CHECK_RESULT_BEAMS(DeserializeToFloat32(optionsObj, "rangeMax", this->RangeMax),
+                     "Error reading colorTableOptions");
   vtkm::Float64 range = (this->RangeMax - this->RangeMin);
-  for (auto i = 0; i < tmpPointXs.size(); ++i)
+  for (std::size_t i = 0; i < tmpPointXs.size(); ++i)
   {
     vtkm::Float64 x = tmpPointXs[i] / range;
     this->PointAlphas.push_back({ x, tmpPointAlphas[i] });
@@ -239,25 +248,27 @@ beams::Result ColorTableOptions::Deserialize(const PJObj& optionsObj)
 
 beams::Result Preset::Deserialize(const PJObj& presetObj)
 {
-  CHECK_RESULT(DeserializeToNativeType(presetObj, "id", this->Id), "Error reading preset");
-  CHECK_RESULT(DeserializeToType(presetObj, "dataSetOptions", this->DataSetOptions),
-               fmt::format("Error reading preset '{}'", this->Id));
-  CHECK_RESULT(DeserializeToType(presetObj, "opacityMapOptions", this->OpacityMapOptions),
-               fmt::format("Error reading preset '{}'", this->Id));
-  CHECK_RESULT(DeserializeToType(presetObj, "cameraOptions", this->CameraOptions),
-               fmt::format("Error reading preset '{}'", this->Id));
-  CHECK_RESULT(DeserializeToType(presetObj, "lightOptions", this->LightOptions),
-               fmt::format("Error reading preset '{}'", this->Id));
+  CHECK_RESULT_BEAMS(DeserializeToNativeType(presetObj, "id", this->Id), "Error reading preset");
+  CHECK_RESULT_BEAMS(DeserializeToType(presetObj, "dataSetOptions", this->DataSetOptions),
+                     fmt::format("Error reading preset '{}'", this->Id));
+  CHECK_RESULT_BEAMS(DeserializeToType(presetObj, "opacityMapOptions", this->OpacityMapOptions),
+                     fmt::format("Error reading preset '{}'", this->Id));
+  CHECK_RESULT_BEAMS(DeserializeToType(presetObj, "cameraOptions", this->CameraOptions),
+                     fmt::format("Error reading preset '{}'", this->Id));
+  CHECK_RESULT_BEAMS(DeserializeToType(presetObj, "lightOptions", this->LightOptions),
+                     fmt::format("Error reading preset '{}'", this->Id));
   if (presetObj.find("colorTableOptions") != presetObj.end())
   {
-    CHECK_RESULT(DeserializeToType(presetObj, "colorTableOptions", this->ColorTableOptions),
-                 fmt::format("Error reading preset '{}'", this->Id));
+    CHECK_RESULT_BEAMS(DeserializeToType(presetObj, "colorTableOptions", this->ColorTableOptions),
+                       fmt::format("Error reading preset '{}'", this->Id));
   }
   return Result::Succeeded();
 }
-
-beams::Result Config::LoadFromFile(const std::string& filePath)
+*/
+pilot::staging::DescriptorResult Config::Deserialize(const toml::table& descriptorTable)
 {
+  return Stage::Deserialize(descriptorTable);
+  /*
   std::ifstream jsonFile(filePath);
 
   PJVal jsonVal;
@@ -327,8 +338,10 @@ beams::Result Config::LoadFromFile(const std::string& filePath)
   }
 
   return Result::Succeeded();
+  */
 }
 
+/*
 std::ostream& operator<<(std::ostream& os, const Preset& preset)
 {
   os << "Preset:\n Id = " << preset.Id << "\n DataSetOptions = " << preset.DataSetOptions
@@ -382,5 +395,6 @@ std::ostream& operator<<(std::ostream& os, const LightOption& option)
      << ", Color = " << option.Color << ", Intensity = " << option.Intensity;
   return os;
 }
+*/
 
 } // namespace beams

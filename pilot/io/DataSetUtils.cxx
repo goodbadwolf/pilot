@@ -16,11 +16,11 @@ ReadResult DataSetUtils::Read(const std::string& name)
   {
     vtkm::io::VTKDataSetReader reader(name);
     auto dataSet = reader.ReadDataSet();
-    return ReadResult(dataSet);
+    return ReadResult::Success(dataSet);
   }
   catch (const vtkm::cont::Error& e)
   {
-    return ReadResult(e.GetMessage());
+    return ReadResult::Fail(e.GetMessage());
   }
 }
 
@@ -33,11 +33,11 @@ WriteResult DataSetUtils::Write(const vtkm::cont::DataSet& dataSet,
     vtkm::io::VTKDataSetWriter writer(fileName);
     writer.SetFileType(fileType);
     writer.WriteDataSet(dataSet);
-    return WriteResult(true);
+    return WriteResult::Success(true);
   }
   catch (const vtkm::cont::Error& e)
   {
-    return WriteResult(e.GetMessage());
+    return WriteResult::Fail(e.GetMessage());
   }
 }
 }

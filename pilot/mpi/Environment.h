@@ -42,5 +42,7 @@ public:
 private:
   Environment();
 };
+
+using EnvironmentPtr = std::shared_ptr<Environment>;
 }
 }

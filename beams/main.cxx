@@ -1,48 +1,66 @@
 #include "Beams.h"
 #include "Result.h"
 
+#include <toml++/toml.h>
+
 #include <pilot/Logger.h>
 #include <pilot/Result.h>
 #include <pilot/mpi/Environment.h>
+#include <pilot/staging/Stage.h>
+#include <pilot/system/SystemUtils.h>
 
-pilot::Result<std::shared_ptr<pilot::mpi::Environment>, std::string> InitializeMpi(int& argc,
-                                                                                   char** argv)
+pilot::Result<pilot::mpi::EnvironmentPtr, std::string> InitializeMpi(int& argc, char** argv)
 {
+  using Result = pilot::Result<pilot::mpi::EnvironmentPtr, std::string>;
   auto mpi = pilot::mpi::Environment::Get();
   auto result = mpi->Initialize(argc, argv);
-  if (result.IsValid() && result.Outcome)
+  if (result.IsSuccess())
   {
-    return mpi;
+    return Result::Success(mpi);
   }
   else
   {
-    return pilot::Result<std::shared_ptr<pilot::mpi::Environment>, std::string>(
-      std::shared_ptr<pilot::mpi::Environment>());
+    return Result::Fail("Failed to initialize MPI");
   }
 }
 
 int main(int argc, char* argv[])
 {
   auto mpiInitResult = InitializeMpi(argc, argv);
-  if (mpiInitResult.IsError())
+  if (mpiInitResult.IsFailure())
   {
-    return EXIT_FAILURE;
+    pilot::system::Die(fmt::format("Beams exiting: {}", mpiInitResult.Error));
   }
-  auto mpiEnv = mpiInitResult.Outcome;
-  std::cerr << "Running on host '" << mpiEnv->Hostname << "'\n";
-  beams::Beams app(mpiEnv);
 
-  auto result = app.Initialize(argc, argv);
-  if (!result.Success)
+  beams::Beams app(mpiInitResult.Value);
+  auto beamsInitResult = app.Initialize(argc, argv);
+  if (!beamsInitResult.IsSuccess())
   {
-    if (mpiEnv->Rank == 0)
-    {
-      std::cerr << "Beams failed with error: " << result.Err << "\n";
-    }
-    return EXIT_FAILURE;
+    pilot::system::Die(fmt::format("Beams failed to initialize: {}", beamsInitResult.Error));
   }
 
   app.Run();
 
   return EXIT_SUCCESS;
+
+  /*
+  auto tbl = toml::parse_file("stage.toml");
+  pilot::staging::Stage stage;
+  auto result = stage.Deserialize(tbl);
+  if (result.IsFailure())
+  {
+    std::cerr << result.Error << "\n";
+  }
+  for (auto j = stage.DataSetProviderDescriptors.cbegin();
+       j != stage.DataSetProviderDescriptors.cend();
+       ++j)
+  {
+    auto d = *j;
+    std::cerr << d.second.get()->Name << "\n";
+  }
+  std::cerr << "Done\n";
+  */
+  //d.Deserialize(*(provs[0].as_table()));
+  //std::cerr << provs << "\n";
+  return 0;
 }
